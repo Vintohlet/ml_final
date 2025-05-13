@@ -8,11 +8,23 @@ import uvicorn
 import re
 from typing import Dict
 
-# --- Инициализация NLTK ресурсов ---
-nltk.download('punkt', quiet=True)
-nltk.download('stopwords', quiet=True)
+import os
+import nltk
 
-# --- Инициализация FastAPI ---
+
+nltk_data_path = os.path.join(os.getcwd(), "nltk_data")
+os.makedirs(nltk_data_path, exist_ok=True)
+nltk.data.path.append(nltk_data_path)
+
+required_nltk = ['punkt', 'stopwords', 'punkt_tab']
+for resource in required_nltk:
+    try:
+        nltk.data.find(f'tokenizers/{resource}')
+    except LookupError:
+        print(f"Downloading NLTK resource: {resource}")
+        nltk.download(resource, download_dir=nltk_data_path)
+
+
 app = FastAPI(
     title="AG News Classification API",
     description="API for classifying English news articles into 4 categories: World, Sports, Business, Sci/Tech"
@@ -26,7 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Загрузка модели и ресурсов ---
+
 model_data = None
 model_filename = "agnews_xgboost_classifier.joblib"
 
@@ -38,7 +50,6 @@ except Exception as e:
     print(f"❌ Error loading model: {e}")
     raise RuntimeError(f"Failed to load model: {e}")
 
-# --- Предобработка текста (адаптированная для английского) ---
 def preprocess_text(text: str) -> str:
     if not isinstance(text, str):
         return ""
